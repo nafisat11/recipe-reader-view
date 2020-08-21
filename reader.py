@@ -1,10 +1,10 @@
 from bs4 import BeautifulSoup
-from bs4.element import NavigableString
+from bs4.element import NavigableString, Tag
 import requests
 import json
 import argparse
-import nltk
 import re
+import spacy
 from pprint import pprint
 
 
@@ -79,8 +79,19 @@ def dfs(tree, ingreds, instr):
         dfs(node, ingreds, instr)
 
 
-def lca():
-    pass
+def lca(ingred, instr, node): #processing for removing irrelevant nodes
+    s = [child.getText(" ", strip=True) for child in node.findChildren(recursive=False)]
+    nlp = spacy.load("en_core_web_sm")
+    t = []
+    tokenized = [nlp(t) for t in s]
+    for txt in tokenized:
+        for token in txt:
+            if token.dep_ in ["ROOT", "nsubj", "dobj", "appos"]:
+                if token.pos_ in ["NOUN", "PROPN"]:
+                    t.append(token.text)
+    print(s)
+            # print(token.text, token.dep_,token.pos_)
+    
 
 
 def parse_arbitrary_html():
@@ -151,8 +162,11 @@ def main():
     ingreds = {}
     instr = {}
     dfs(get_parsed_html().body, ingreds, instr)
-    print(ingreds)
-    print(instr)
+    link1_parents = list(list(ingreds.keys())[0].parents)[::-1]
+    link2_parents = list(list(instr.keys())[0].parents)[::-1]
+    common = [x for x, y in zip(link1_parents, link2_parents) if x is y][-1]
+    lca(list(ingreds.keys()), list(instr.keys()), common)
+    
 
 
 if __name__ == "__main__":
